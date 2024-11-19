@@ -1,0 +1,8 @@
+<!-- templates/accounts/user_info.html -->
+<h2>{{ user.username }}'s Information</h2>
+<p>Phone: {{ user_info.phone }}</p>
+<p>IIN: {{ user_info.iin }}</p>
+<p>Address: {{ user_info.address }}</p>
+<p>Client Type: {{ user_info.client_type.name }}</p>
+
+<a href="{% url 'edit_user_info' %}">Edit Information</a>

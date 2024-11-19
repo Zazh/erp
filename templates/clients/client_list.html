@@ -1,0 +1,15 @@
+<!-- templates/clients/client_list.html -->
+{% extends 'base.html' %}
+
+{% block title %}Client List{% endblock %}
+
+{% block content %}
+<h2>Список клиентов</h2>
+<ul>
+  {% for client in clients %}
+    <li>{{ client.name }} ({{ client.client_type.name }})</li>
+  {% empty %}
+    <li>Нет клиентов</li>
+  {% endfor %}
+</ul>
+{% endblock %}
