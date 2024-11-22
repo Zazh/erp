@@ -1,48 +1,41 @@
 from django.contrib import admin
-from .models import PriceListProduct, PriceListService
+from .models import PriceList
+from django.contrib.contenttypes.admin import GenericTabularInline
 
-@admin.register(PriceListProduct)
-class PriceListProductAdmin(admin.ModelAdmin):
+
+@admin.register(PriceList)
+class PriceListAdmin(admin.ModelAdmin):
     list_display = (
-        'product_variant',
+        'content_object',  # Показывает связанный объект (товар или услугу)
+        'get_content_type',  # Показывает тип объекта (товар или услуга)
         'price_default',
         'price_individual',
         'price_business',
     )
-    list_filter = ('product_variant',)
-    search_fields = ('product_variant__name',)
+    list_filter = ('content_type',)  # Фильтр по типу объекта (товар или услуга)
+    search_fields = ('content_type__model', 'object_id')  # Поиск по типу объекта и ID объекта
 
     fieldsets = (
         (None, {
-            'fields': ('product_variant',)
+            'fields': ('content_type', 'object_id', 'content_object')
         }),
         ('Цены для типов клиентов', {
             'fields': ('price_individual', 'price_business', 'price_default')
         }),
     )
 
-    def get_readonly_fields(self, request, obj=None):
-        if obj:
-            return ['product_variant']
-        return []
-
-@admin.register(PriceListService)
-class PriceListServiceAdmin(admin.ModelAdmin):
-    list_display = (
-        'service_type',
-        'category',
-        'product_group',
-        'price_default',
-        'price_individual',
-        'price_business',
-    )
-    list_filter = ('service_type', 'category', 'product_group')
-    search_fields = ('service_type__name', 'product_group__name', 'category__name')
-
-    fields = ('service_type', 'category', 'product_group', 'price_individual', 'price_business', 'price_default')
+    readonly_fields = ('content_object',)
 
     def get_readonly_fields(self, request, obj=None):
-        # Убираем поля `category` и `product_group` из "только для чтения"
+        # Делаем `content_type` и `object_id` readonly, если запись уже существует
         if obj:
-            return ['service_type']
-        return []
+            return ['content_type', 'object_id'] + self.readonly_fields
+        return self.readonly_fields
+
+    def get_content_type(self, obj):
+        """
+        Возвращает человекочитаемый тип связанного объекта (товар или услуга).
+        """
+        return obj.content_type.name.capitalize() if obj.content_type else "Неизвестно"
+
+    get_content_type.short_description = "Тип объекта"

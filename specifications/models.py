@@ -1,84 +1,95 @@
 from django.db import models
-from products.models import ProductVariant
-from services.models import ServiceType
 
-# Модель типа продукта
-class ProductType(models.Model):
-    name = models.CharField(max_length=100, unique=True, verbose_name="Тип продукта")
+# Тип спецификации
+class SpecificationType(models.Model):
+    name = models.CharField(max_length=150, verbose_name="Тип спецификации")
+    unit_type = models.CharField(
+        max_length=150,
+        verbose_name="Единица измерения",
+        null=True,
+        blank=True
+    )
 
     def __str__(self):
-        return self.name
+        return self.name or "Без названия"
 
     class Meta:
-        verbose_name = "Тип продукта"
-        verbose_name_plural = "Типы продуктов"
+        verbose_name = "Тип спецификации"
+        verbose_name_plural = "Типы спецификаций"
 
 
-# Абстрактная базовая модель спецификации
-class BaseSpecification(models.Model):
-    service_type = models.ForeignKey(
-        ServiceType,
+# Спецификация
+class Specification(models.Model):
+    name = models.CharField(max_length=150, verbose_name="Название")
+    value = models.CharField(max_length=150, verbose_name="Значение")
+    specification_type = models.ForeignKey(
+        SpecificationType,
         on_delete=models.CASCADE,
-        db_index=True,
-        verbose_name="Тип услуги"
+        related_name="product_groups",
+        verbose_name="Тип спецификации"
     )
-    product_type = models.ForeignKey(
-        ProductType,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        db_index=True,
-        verbose_name="Тип продукта"
-    )
+
     product_variant = models.ForeignKey(
-        ProductVariant,
+        "products.ProductVariant",  # Строковый путь
         on_delete=models.CASCADE,
+        verbose_name="Вариант продукта",
         null=True,
-        blank=True,
-        db_index=True,
-        verbose_name="Вариант товара"
+        blank=True
     )
+
+    def __str__(self):
+        return self.name or "Без названия"
 
     class Meta:
-        abstract = True
-        unique_together = ('service_type', 'product_type', 'product_variant')
-
-    def __str__(self):
-        product_name = getattr(self.product_variant, 'name', 'Нет товара')
-        product_type_name = getattr(self.product_type, 'name', 'Нет типа продукта')
-        return f"{self.service_type} — {product_type_name} — {product_name}"
+        verbose_name = "Спецификация"
+        verbose_name_plural = "Спецификации"
 
 
-# Спецификация для распила
-class CuttingSpecification(BaseSpecification):
-    cutting_file = models.FileField(
-        upload_to='cutting_files/%Y/%m/%d/',
-        blank=True,
+# Связь спецификации и шаблона
+class TemplateSpecification(models.Model):
+    product_template = models.ForeignKey(
+        "products.ProductTemplate",  # Строковый путь
+        on_delete=models.CASCADE,
+        related_name="product_templates",
+        verbose_name="Шаблон продукта"
+    )
+
+    specifications_id = models.ForeignKey(
+        Specification,
+        on_delete=models.CASCADE,
+        verbose_name="ID спецификации",
         null=True,
-        verbose_name="Файл кроя"
+        blank=True
     )
 
     def __str__(self):
-        return f"Распил: {self.service_type} — {self.product_type}"
+        return f"{self.product_template} - {self.specifications_id}"
+
+    class Meta:
+        verbose_name = "Связь спецификации и шаблона"
+        verbose_name_plural = "Связи спецификаций и шаблонов"
 
 
-# Спецификация для закатки
-class EdgingSpecification(BaseSpecification):
-    edge_thickness = models.DecimalField(
-        max_digits=5,
-        decimal_places=2,
-        verbose_name="Толщина кромки"
+# Связь спецификации и варианта продукта
+class ProductVariantSpecification(models.Model):
+    product_variant = models.ForeignKey(
+        "products.ProductVariant",  # Строковый путь
+        on_delete=models.CASCADE,
+        related_name="variant_specifications",
+        verbose_name="Вариант продукта"
+    )
+
+    specifications_id = models.ForeignKey(
+        Specification,
+        on_delete=models.CASCADE,
+        verbose_name="ID спецификации",
+        null=True,
+        blank=True
     )
 
     def __str__(self):
-        return f"Закатка: {self.service_type} — {self.product_type} — {self.product_variant} (Толщина кромки: {self.edge_thickness} мм)"
+        return f"{self.product_variant} - {self.specifications_id}"
 
-
-# Спецификация для фасадов
-class FacadeSpecification(BaseSpecification):
-    coating = models.CharField(max_length=100, verbose_name="Покрытие")
-    design = models.CharField(max_length=100, verbose_name="Дизайн")
-    color = models.CharField(max_length=50, verbose_name="Цвет")
-
-    def __str__(self):
-        return f"Фасад: {self.service_type} — {self.product_type} — {self.product_variant} (Покрытие: {self.coating}, Дизайн: {self.design}, Цвет: {self.color})"
+    class Meta:
+        verbose_name = "Связь спецификации и варианта товара"
+        verbose_name_plural = "Связи спецификаций и вариантов товаров"

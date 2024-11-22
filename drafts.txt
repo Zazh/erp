@@ -14,4 +14,7 @@ docker exec -it miierp-web-1 python -m django --version
 docker exec -it miierp-web-1 sh
     find . -path "*/migrations/*.py" -not -name "__init__.py" -delete
 
-exot
+
+
+
+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

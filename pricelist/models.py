@@ -1,50 +1,44 @@
 from django.db import models
-from clients.models import ClientType
-from services.models import ServiceType
-from products.models import ProductVariant, Category, ProductGroup
+from django.contrib.contenttypes.fields import GenericForeignKey
+from django.contrib.contenttypes.models import ContentType
 
-# Модель для прайс-листа товаров
-class PriceListProduct(models.Model):
-    product_variant = models.ForeignKey(ProductVariant, on_delete=models.CASCADE, verbose_name="Вариант товара", null=False)
-    price_individual = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Цена для Individual", null=True, blank=True)
-    price_business = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Цена для Business", null=True, blank=True)
-    price_default = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Цена по умолчанию", null=True, blank=True)
+class PriceList(models.Model):
+    content_type = models.ForeignKey(
+        ContentType,
+        on_delete=models.CASCADE,
+        verbose_name="Тип объекта"
+    )
+    object_id = models.PositiveIntegerField(verbose_name="ID объекта")
+    content_object = GenericForeignKey('content_type', 'object_id')  # Ссылка на объект (товар или услуга)
 
-    def __str__(self):
-        return f"Прайс-лист для {self.product_variant.name}: {self.get_price_display()}"
-
-    def get_price(self, client_type):
-        """
-        Возвращает цену в зависимости от типа клиента.
-        """
-        if client_type.name == "Individual" and self.price_individual is not None:
-            return self.price_individual
-        elif client_type.name == "Business" and self.price_business is not None:
-            return self.price_business
-        else:
-            return self.price_default
-
-    def get_price_display(self):
-        """
-        Возвращает строку с ценами для всех типов клиентов.
-        """
-        return f"Individual: {self.price_individual}, Business: {self.price_business}, Default: {self.price_default}"
-
-
-# Модель для прайс-листа услуг
-class PriceListService(models.Model):
-    service_type = models.ForeignKey(ServiceType, on_delete=models.CASCADE, verbose_name="Тип услуги")
-    category = models.ForeignKey(Category, on_delete=models.CASCADE, verbose_name="Категория товара")
-    product_group = models.ForeignKey(ProductGroup, on_delete=models.CASCADE, verbose_name="Группа товаров")
-    price_individual = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Цена для Individual", null=True, blank=True)
-    price_business = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Цена для Business", null=True, blank=True)
-    price_default = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Цена по умолчанию", null=True, blank=True)
+    price_individual = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        verbose_name="Цена для Individual",
+        null=True,
+        blank=True
+    )
+    price_business = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        verbose_name="Цена для Business",
+        null=True,
+        blank=True
+    )
+    price_default = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        verbose_name="Цена по умолчанию",
+        null=True,
+        blank=True
+    )
 
     class Meta:
-        unique_together = ('service_type', 'product_group')
+        verbose_name = "Прайс-лист"
+        verbose_name_plural = "Прайс-листы"
 
     def __str__(self):
-        return f"Прайс-лист для {self.service_type.name} ({self.product_group.name}): {self.get_price_display()}"
+        return f"Прайс-лист для {self.content_object}: {self.get_price_display()}"
 
     def get_price(self, client_type):
         """
